@@ -133,9 +133,8 @@ int main(int argc, char *args[]){
         cities.push_back(inputCity);
     }
 
-    inFile.close();
-    outFile.close();
 
+    // Output the list of cities
     cout << "Cities:" << endl;
     for(int i = 0; i < (int)cities.size(); i++)
         cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
@@ -145,6 +144,15 @@ int main(int argc, char *args[]){
     for(int i = 0; i < (int)cities.size(); i++)
         cout << optTour[i] << " ";
     cout << endl;
+
+    // Output to file
+    outFile << distTour(cities,optTour) << endl;
+    for(int i = 0; i < (int)cities.size(); i++)
+        outFile << optTour[i] << endl;
+    cout << endl;
+
+    inFile.close();
+    outFile.close();
 
     return 0;
 }
