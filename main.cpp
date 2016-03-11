@@ -38,12 +38,52 @@ struct edge{
     bool used;
 };
 
-/*
-int* MST(int* graph[], const int& rows, const int& cols)
-{
+/***************************************************************************************
+ ** Function: greedyMST
+ ** Description: Given array of distances, chooses greedy options and returns the one with
+ **              the minimum distance
+ ** Parameters: int* keyVals[], int rows, int cols
+ ***************************************************************************************/
+vector<int> greedyMST (int* keyVals[], int rows, int cols){
+    int primDist = 0;
+    int numCities = rows;
+    bool used[rows];
+    int i, j;   //iterators
+    int numEdges;
+    int r, c;
 
+    vector<int> primTour;
+
+    for(i = 0; i < numCities; i++) {
+        used[i] = false;
+    }
+    used[0] = true;
+    numEdges = 0;
+    primTour.push_back(0);
+
+    while(numEdges < (numCities - 1)) {
+        primDist = INT_MAX;
+        for(i = 0; i < numCities; i++) {
+            if(used[i] == true) {
+                for(j = 0; j < numCities; j++) {
+                    if(used[j] == false) {
+                        if(primDist > keyVals[i][j]) {
+                            primDist = keyVals[i][j];
+                            r = i;
+                            c = j;
+                        }
+                    }
+                }
+            }
+        }
+        used[c] = true;
+        cout << "\n" << (r) << " --> " << (c);
+        numEdges = numEdges + 1;
+        primTour.push_back(c);
+    }
+
+    return primTour;
 }
-*/
 
 /***************************************************************************************
  ** Function: dist
@@ -119,12 +159,8 @@ vector<int> nearestNeighbor (vector<struct city> cities){
     int closestCityId;
     vector<int> optTour;
 
-
-
     optTour.push_back(currentCityId);
     cities[currentCityId].degree = 2;
-
-
 
     for (int i = 0; i < numCities - 1; i++){
         closestCityDist = INT_MAX;
@@ -244,7 +280,7 @@ int main(int argc, char *args[]){
 */
     fileName = "a.txt";
 //    baseName = fileName.substr(0, fileName.find_last_of("."));
-    outputFile = baseName + ".tour";
+    outputFile = fileName + ".tour";
 
     ifstream inFile;
     inFile.open(fileName.c_str());
@@ -266,44 +302,75 @@ int main(int argc, char *args[]){
         cities.push_back(inputCity);
     }
 
-
-
     //construct adjacency matrix of graph
-    /*
-    const int ROWS(10), COLS(10);
-    int citiesGraph[ROWS][COLS];
-    for (int i = 0; i < 10; i++){
-        for (int j = 0; j < 10; j++){
-            citiesGraph[i][j] = dist(cities[i],cities[j]);
-        }
+    int rows = cities.size();
+    int cols = cities.size();
+    int** citiesGraph;
+    citiesGraph = new int* [rows];
+    for(int k = 0; k < rows; k++) {
+        citiesGraph[k] = new int[cols];
     }
-    int* citiesGraph_p[ROWS];
-	*citiesGraph_p = citiesGraph[0];
-    */
 
+    for(i = 0; i < rows; i++){
+        for(j = 0; j < rows; j++){
+            citiesGraph[i][j] = dist(cities[i],cities[j]);
+            if(citiesGraph[i][j] == 0){
+                citiesGraph[i][j] = INT_MAX;
+            }
+            cout << citiesGraph[i][j] << " ";
+        }
+        cout << endl;
+    }
 
-    //greedyEdge(cities);
-
-    /*
+    cout << "*****GreedyMST*****" << endl;
     cout << "Cities:" << endl;
     for(int i = 0; i < (int)cities.size(); i++)
         cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
 
-    optTour = nearestNeighbor(cities);
-    cout << endl << "Distance: " << optTour.back() << endl << "Order: ";
-    for(int i = 0; i < (int)optTour.size(); i++)
-        cout << optTour[i] << " ";
-    cout << endl;
-    /*
-
-
-    /*
-    optTour = bruteForce(cities);
+    optTour = greedyMST(citiesGraph, rows, cols);
     cout << endl << "Distance: " << distTour(cities,optTour) << endl << "Order: ";
     for(int i = 0; i < (int)cities.size(); i++)
         cout << optTour[i] << " ";
     cout << endl;
-    */
+    cout << endl;
+
+    //greedyEdge(cities);
+
+    cout << "*****Greedy Edge*****" << endl;
+    cout << "Cities:" << endl;
+    for(int i = 0; i < (int)cities.size(); i++){
+        cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
+    }
+
+    optTour = nearestNeighbor(cities);
+    cout << endl << "Distance: " << optTour.back() << endl << "Order: ";
+    for(int i = 0; i < ((int)optTour.size() - 1); i++) {
+        cout << optTour[i] << " ";
+    }
+    cout << endl;
+    cout << endl;
+
+
+    cout << "*****Brute Force*****" << endl;
+    cout << "Cities:" << endl;
+    for(int i = 0; i < (int)cities.size(); i++) {
+        cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
+    }
+
+    optTour = bruteForce(cities);
+    cout << endl << "Distance: " << distTour(cities,optTour) << endl << "Order: ";
+    for(int i = 0; i < (int)cities.size(); i++) {
+        cout << optTour[i] << " ";
+    }
+    cout << endl;
+
+    // Output to file
+    outFile << distTour(cities,optTour) << endl;
+    for(int i = 0; i < (int)cities.size(); i++) {
+        outFile << optTour[i] << endl;
+    }
+    cout << endl;
+
 
     inFile.close();
     outFile.close();
