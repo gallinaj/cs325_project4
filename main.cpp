@@ -64,6 +64,53 @@ int distTour(vector<struct city> cities, vector<int> order){
     return totalDistance;
 }
 
+/***************************************************************************************
+ ** Function: greedyMST
+ ** Description: Given array of distances, chooses greedy options and returns the one with
+ **              the minimum distance
+ ** Parameters: int* keyVals[], int rows, int cols
+ ***************************************************************************************/
+vector<int> greedyMST (int* keyVals[], int rows, int cols){
+    int primDist = 0;
+    int numCities = rows;
+    bool used[rows];
+    int i, j;   //iterators
+    int numEdges;
+    int r, c;
+
+    vector<int> primTour;
+
+    for(i = 0; i < numCities; i++) {
+        used[i] = false;
+    }
+    used[0] = true;
+    numEdges = 0;
+    primTour.push_back(0);
+
+    while(numEdges < (numCities - 1)) {
+        primDist = INT_MAX;
+        for(i = 0; i < numCities; i++) {
+            if(used[i] == true) {
+                for(j = 0; j < numCities; j++) {
+                    if(used[j] == false) {
+                        if(primDist > keyVals[i][j]) {
+                            primDist = keyVals[i][j];
+                            r = i;
+                            c = j;
+                        }
+                    }
+                }
+            }
+        }
+        used[c] = true;
+        cout << "\n" << (r) << " --> " << (c);
+        numEdges = numEdges + 1;
+        primTour.push_back(c);
+    }
+
+    return primTour;
+}
+
 
 /***************************************************************************************
  ** Function: bruteForce
@@ -105,13 +152,12 @@ vector<int> bruteForce (vector<struct city> cities){
  ** Description:
  ** Parameters: vector<struct city> cities
  ***************************************************************************************/
-vector<int> nearestNeighbor (vector<struct city> cities){
+void nearestNeighbor (vector<struct city>& cities, vector<int>& optTour){
     int numCities = cities.size();  // Number of cities used.
     int totalDist = 0;              // Total distance of the tour
     int closestCityDist = INT_MAX;
     int currentCityId = 0;
     int closestCityId;
-    vector<int> optTour; // List of city ids in order of visiting
 
     // Start tour at city 0. Push onto optTour vector as starting location.
     optTour.push_back(currentCityId);
@@ -142,7 +188,7 @@ vector<int> nearestNeighbor (vector<struct city> cities){
 
     totalDist += dist(cities[0],cities[currentCityId]);     //update total distance
     optTour.push_back(totalDist); //add total distance to back of optTour and return
-    return optTour;
+    return;
 }
 
 
@@ -151,10 +197,9 @@ vector<int> nearestNeighbor (vector<struct city> cities){
  ** Description:
  ** Parameters: vector<struct city> cities
  ***************************************************************************************/
-vector<int> greedyEdge (vector<struct city> cities){
+void greedyEdge (vector<struct city>& cities, vector<int>& optTour){
     int numCities = cities.size();  // number of cities
     vector <struct edge> edges;     // list of all edges
-    vector <int> optTour;           // optimal tour found
     struct edge currentEdge;
     currentEdge.used = false;
     struct edge tempEdge;
@@ -193,9 +238,8 @@ vector<int> greedyEdge (vector<struct city> cities){
                && cities[edges[i].v1].degree < 2
                && cities[edges[i].v2].degree < 2){
 
-                //need to check that using edge does not create cycle of length less than n
-                //use modified DFS to check for cycles. Only need to check the component of graph
-                //that most recent edge was added to.
+                // check that using edge does not create cycle
+
                 bool isCycle = false;
                 if(cities[edges[i].v1].degree == 1 && cities[edges[i].v2].degree == 1){
                     currentCity = edges[i].v1;
@@ -226,6 +270,7 @@ vector<int> greedyEdge (vector<struct city> cities){
                 if(isCycle)
                     continue;
 
+                //Add edge and update appropriate values in cities and edges vector
                 edges[i].used = true;
                 cities[edges[i].v1].degree++;
                 cities[edges[i].v2].degree++;
@@ -247,6 +292,7 @@ vector<int> greedyEdge (vector<struct city> cities){
         }
     }
 
+    // Result so far is a path visiting all vertices. Add in missing edge to create cycle.
     int lastCity1 = -1, lastCity2 = -1;
     for (int i=0; i < numCities; i++)
     {
@@ -264,7 +310,6 @@ vector<int> greedyEdge (vector<struct city> cities){
     cities[lastCity1].degree++;
     cities[lastCity2].degree++;
 
-
     for (int i=0; i < (int)edges.size(); i++) {
         if (edges[i].v1 == lastCity1 && edges[i].v2 == lastCity2){
             edges[i].used = true;
@@ -272,10 +317,11 @@ vector<int> greedyEdge (vector<struct city> cities){
         }
     }
 
+
+    // Using list of cities with neighbors, construct the tour for TSP
     currentCity = 0;
     nextCity = cities[currentCity].neighbor1;
     optTour.push_back(currentCity);
-
     for(int i = 0; i < numCities; i++){
         if (cities[nextCity].neighbor1 != currentCity){
             currentCity = nextCity;
@@ -287,10 +333,9 @@ vector<int> greedyEdge (vector<struct city> cities){
         }
         optTour.push_back(currentCity);
     }
-    //Now edges used in tour are all marked true. Follow edges to construct list of city ids in order
-    //push to optTour, compute total distance and return.
+
     optTour.push_back(distTour(cities,optTour));
-    return optTour;
+    return;
 }
 
 
@@ -304,7 +349,7 @@ int main(int argc, char *args[]){
     vector<struct city> cities;
     struct city inputCity;
     int inputValue;
-
+    /*
     if (argc > 1){
         fileName = args[1];
     }
@@ -312,7 +357,9 @@ int main(int argc, char *args[]){
         cout << "Please enter a string." << endl << endl;
         return 1;
     }
+    */
 
+    fileName = "tsp_example_3.txt";
     outputFile = fileName + ".tour";
 
     ifstream inFile;
@@ -340,6 +387,9 @@ int main(int argc, char *args[]){
     }
     inFile.close();
 
+    vector<int> optTour;
+
+    /*
 
     //allocate memory for adjacency matrix of graph
     //const int ROWS(10), COLS(10);
@@ -355,6 +405,8 @@ int main(int argc, char *args[]){
         }
     }
 
+    */
+
     /*
     vector<int> optTour = bruteForce(cities);
     cout << "Brute Force" << endl << "Distance: " << optTour.back() << endl << "Order: ";
@@ -364,14 +416,14 @@ int main(int argc, char *args[]){
     */
 
     /*
-    optTour = nearestNeighbor(cities);
+    optTour = nearestNeighbor(cities,optTour);
     cout << "Nearest Neighbor" << endl << "Distance: " << optTour.back() << endl << "Order: ";
     for(int i = 0; i < (int)cities.size(); i++)
         cout << optTour[i] << " ";
     cout << endl << endl;
     */
 
-    vector<int> optTour = greedyEdge(cities);
+    greedyEdge(cities,optTour);
     outFile << optTour.back() << endl;
     for(int i = 0; i < (int)cities.size(); i++)
         outFile << optTour[i] << endl;
