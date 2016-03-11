@@ -232,25 +232,25 @@ int main(int argc, char *args[]){
     vector<struct city> cities;
     struct city inputCity;
     int inputValue;
+    vector<int> optTour;
 /*
     if (argc > 1){
         fileName = args[1];
     }
     else{
         cout << "Please enter a string." << endl << endl;
-        return 1;
+        cin >> fileName;
     }
 */
     fileName = "a.txt";
-    baseName = fileName.substr(0, fileName.find_last_of("."));
-    outputFile = baseName + "change.txt";
+//    baseName = fileName.substr(0, fileName.find_last_of("."));
+    outputFile = baseName + ".tour";
 
     ifstream inFile;
     inFile.open(fileName.c_str());
 
     //Validates that input file can be opened.
-    if (!inFile.is_open())
-    {
+    if (!inFile.is_open()){
         cout << "Error: Could not open file." << endl << endl;
         return 1;
     }
@@ -266,8 +266,7 @@ int main(int argc, char *args[]){
         cities.push_back(inputCity);
     }
 
-    inFile.close();
-    outFile.close();
+
 
     //construct adjacency matrix of graph
     /*
@@ -290,7 +289,7 @@ int main(int argc, char *args[]){
     for(int i = 0; i < (int)cities.size(); i++)
         cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
 
-    vector<int> optTour = nearestNeighbor(cities);
+    optTour = nearestNeighbor(cities);
     cout << endl << "Distance: " << optTour.back() << endl << "Order: ";
     for(int i = 0; i < (int)optTour.size(); i++)
         cout << optTour[i] << " ";
@@ -299,11 +298,15 @@ int main(int argc, char *args[]){
 
 
     /*
-    vector<int> optTour = bruteForce(cities);
+    optTour = bruteForce(cities);
     cout << endl << "Distance: " << distTour(cities,optTour) << endl << "Order: ";
     for(int i = 0; i < (int)cities.size(); i++)
         cout << optTour[i] << " ";
     cout << endl;
     */
+
+    inFile.close();
+    outFile.close();
+
     return 0;
 }
