@@ -23,11 +23,20 @@ using std::vector;
 #include<algorithm>
 using std::min;
 
-
 struct city{
     int id;
     int x;
     int y;
+    int degree;
+    int neighbor1;
+    int neighbor2;
+};
+
+struct edge{
+    int v1;
+    int v2;
+    int length;
+    bool used;
 };
 
 /***************************************************************************************
@@ -54,6 +63,7 @@ int distTour(vector<struct city> cities, vector<int> order){
     totalDistance += dist(cities[order[numCities - 1]],cities[order[0]]);
     return totalDistance;
 }
+
 
 /***************************************************************************************
  ** Function: bruteForce
@@ -91,26 +101,218 @@ vector<int> bruteForce (vector<struct city> cities){
 
 
 /***************************************************************************************
+ ** Function: nearestNeighbor
+ ** Description:
+ ** Parameters: vector<struct city> cities
+ ***************************************************************************************/
+vector<int> nearestNeighbor (vector<struct city> cities){
+    int numCities = cities.size();  // Number of cities used.
+    int totalDist = 0;              // Total distance of the tour
+    int closestCityDist = INT_MAX;
+    int currentCityId = 0;
+    int closestCityId;
+    vector<int> optTour; // List of city ids in order of visiting
+
+    // Start tour at city 0. Push onto optTour vector as starting location.
+    optTour.push_back(currentCityId);
+    cities[currentCityId].degree = 2;
+
+    // Perform iterations of adding nearest unused neighbor as next stop on tour a
+    // total of numCities times.
+    for (int i = 0; i < numCities - 1; i++){
+        closestCityDist = INT_MAX;
+
+        // Find the closest city to the current city. Store id of closest city in closestCityId
+        // and distance to closest city in closestCityDist
+        for(int j = 0; j < numCities; j++){
+            if(cities[j].degree == 0 && dist(cities[j],cities[currentCityId]) < closestCityDist){
+                closestCityId = j;
+                closestCityDist = dist(cities[j],cities[currentCityId]);
+            }
+        }
+
+        //Increase the degree of closest city to show it was visited
+        cities[closestCityId].degree += 2;
+
+        //Add the closest city as the next city on tour and update total distance
+        optTour.push_back(closestCityId);
+        totalDist += closestCityDist;
+        currentCityId = closestCityId;
+    }
+
+    totalDist += dist(cities[0],cities[currentCityId]);     //update total distance
+    optTour.push_back(totalDist); //add total distance to back of optTour and return
+    return optTour;
+}
+
+
+/***************************************************************************************
+ ** Function: greedyEdge
+ ** Description:
+ ** Parameters: vector<struct city> cities
+ ***************************************************************************************/
+vector<int> greedyEdge (vector<struct city> cities){
+    int numCities = cities.size();  // number of cities
+    vector <struct edge> edges;     // list of all edges
+    vector <int> optTour;           // optimal tour found
+    struct edge currentEdge;
+    currentEdge.used = false;
+    struct edge tempEdge;
+
+    //Use cities vector to construct list of all edges with lengths
+    for(int i = 0; i < numCities; i++){
+        for (int j = i+1; j < numCities; j++){
+            currentEdge.v1 = i;
+            currentEdge.v2 = j;
+            currentEdge.length = dist(cities[i],cities[j]);
+            edges.push_back(currentEdge);
+        }
+
+    }
+
+    //use sort to order edge list in ascending order of length; currently insertion sort - change to merge
+    for(int i = 0; i < (int)edges.size(); i++){
+        for (int j = i+1; j < (int)edges.size(); j++){
+            if (edges[j].length < edges[i].length){
+                tempEdge = edges[i];
+                edges[i] = edges[j];
+                edges[j] = tempEdge;
+            }
+        }
+    }
+
+    int usedEdgeCount = 0;
+    int lastEdgeIndex = -1;
+    int currentCity;
+    int nextCity;
+
+    while (usedEdgeCount < numCities - 1){
+        for(int i = lastEdgeIndex + 1; i < (int)edges.size(); i++){
+            //Check that edge has not be used and then degree of both incident vertices is less than 2
+            if(edges[i].used == false
+               && cities[edges[i].v1].degree < 2
+               && cities[edges[i].v2].degree < 2){
+
+                //need to check that using edge does not create cycle of length less than n
+                //use modified DFS to check for cycles. Only need to check the component of graph
+                //that most recent edge was added to.
+                bool isCycle = false;
+                if(cities[edges[i].v1].degree == 1 && cities[edges[i].v2].degree == 1){
+                    currentCity = edges[i].v1;
+                    nextCity = cities[currentCity].neighbor1;
+                    //int cycleLength = 0;
+                    do{
+                        if (cities[nextCity].neighbor1 == edges[i].v2 || cities[nextCity].neighbor2 == edges[i].v2){
+                            isCycle = true;
+                            break;
+                        }
+
+                        if (cities[nextCity].neighbor1 == -1 || cities[nextCity].neighbor2 == -1){
+                            break;
+                        }
+
+                        int temp = nextCity;
+                        if(cities[nextCity].neighbor1 == currentCity)
+                            nextCity = cities[nextCity].neighbor2;
+                        else
+                            nextCity = cities[nextCity].neighbor1;
+                        currentCity = temp;
+
+                    } while (true);
+
+
+                }
+
+                if(isCycle)
+                    continue;
+
+                edges[i].used = true;
+                cities[edges[i].v1].degree++;
+                cities[edges[i].v2].degree++;
+
+                if (cities[edges[i].v1].neighbor1 == -1)
+                    cities[edges[i].v1].neighbor1 = edges[i].v2;
+                else
+                    cities[edges[i].v1].neighbor2 = edges[i].v2;
+
+                if (cities[edges[i].v2].neighbor1 == -1)
+                    cities[edges[i].v2].neighbor1 = edges[i].v1;
+                else
+                    cities[edges[i].v2].neighbor2 = edges[i].v1;
+
+                usedEdgeCount++;
+                lastEdgeIndex = i;
+                break;
+            }
+        }
+    }
+
+    int lastCity1 = -1, lastCity2 = -1;
+    for (int i=0; i < numCities; i++)
+    {
+        if(cities[i].neighbor2 == -1){
+            if (lastCity1 == -1)
+                lastCity1 = i;
+            else  {
+                lastCity2 = i;
+                break;
+            }
+        }
+    }
+    cities[lastCity1].neighbor2 = lastCity2;
+    cities[lastCity2].neighbor2 = lastCity1;
+    cities[lastCity1].degree++;
+    cities[lastCity2].degree++;
+
+
+    for (int i=0; i < (int)edges.size(); i++) {
+        if (edges[i].v1 == lastCity1 && edges[i].v2 == lastCity2){
+            edges[i].used = true;
+            break;
+        }
+    }
+
+    currentCity = 0;
+    nextCity = cities[currentCity].neighbor1;
+    optTour.push_back(currentCity);
+
+    for(int i = 0; i < numCities; i++){
+        if (cities[nextCity].neighbor1 != currentCity){
+            currentCity = nextCity;
+            nextCity = cities[nextCity].neighbor1;
+        }
+        else {
+            currentCity = nextCity;
+            nextCity = cities[nextCity].neighbor2;
+        }
+        optTour.push_back(currentCity);
+    }
+    //Now edges used in tour are all marked true. Follow edges to construct list of city ids in order
+    //push to optTour, compute total distance and return.
+    optTour.push_back(distTour(cities,optTour));
+    return optTour;
+}
+
+
+/***************************************************************************************
  ** Function: main
  ** Description: driver function to call algorithms on input
  ** Parameters:
  ***************************************************************************************/
 int main(int argc, char *args[]){
-    string fileName, baseName, outputFile, inputStr;
+    string fileName, outputFile, inputStr;
     vector<struct city> cities;
     struct city inputCity;
     int inputValue;
-/*
+
     if (argc > 1){
         fileName = args[1];
     }
     else{
         cout << "Please enter a string." << endl << endl;
-        cin >> fileName;
+        return 1;
     }
-*/
-    fileName = "a.txt";
-    //baseName = fileName.substr(0, fileName.find_last_of("."));
+
     outputFile = fileName + ".tour";
 
     ifstream inFile;
@@ -126,33 +328,54 @@ int main(int argc, char *args[]){
     ofstream outFile;
     outFile.open(outputFile.c_str());
 
+    // read each line of file, create city structs, and push them to cities vector
     while (inFile >> inputValue){
         inputCity.id = inputValue;
         inFile >> inputCity.x;
         inFile >> inputCity.y;
+        inputCity.degree = 0;
+        inputCity.neighbor1 = -1;
+        inputCity.neighbor2 = -1;
         cities.push_back(inputCity);
     }
+    inFile.close();
 
 
-    // Output the list of cities
-    cout << "Cities:" << endl;
-    for(int i = 0; i < (int)cities.size(); i++)
-        cout << cities[i].id << " " << cities[i].x << " " << cities[i].y << endl;
+    //allocate memory for adjacency matrix of graph
+    //const int ROWS(10), COLS(10);
+    int** citiesGraph;
+    citiesGraph = new int* [10];
+    for (int i = 0; i < 10; i++)
+        citiesGraph[i] = new int[10];
 
+     //Enter values for adjacency matrix of graph
+    for (int i = 0; i < 10; i++){
+        for (int j = 0; j < 10; j++){
+            citiesGraph[i][j] = dist(cities[i],cities[j]);
+        }
+    }
+
+    /*
     vector<int> optTour = bruteForce(cities);
-    cout << endl << "Distance: " << distTour(cities,optTour) << endl << "Order: ";
+    cout << "Brute Force" << endl << "Distance: " << optTour.back() << endl << "Order: ";
     for(int i = 0; i < (int)cities.size(); i++)
         cout << optTour[i] << " ";
-    cout << endl;
+    cout << endl << endl;
+    */
 
-    // Output to file
-    outFile << distTour(cities,optTour) << endl;
+    /*
+    optTour = nearestNeighbor(cities);
+    cout << "Nearest Neighbor" << endl << "Distance: " << optTour.back() << endl << "Order: ";
+    for(int i = 0; i < (int)cities.size(); i++)
+        cout << optTour[i] << " ";
+    cout << endl << endl;
+    */
+
+    vector<int> optTour = greedyEdge(cities);
+    outFile << optTour.back() << endl;
     for(int i = 0; i < (int)cities.size(); i++)
         outFile << optTour[i] << endl;
-    cout << endl;
 
-    inFile.close();
     outFile.close();
-
     return 0;
 }
